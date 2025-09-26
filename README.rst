@@ -89,10 +89,10 @@ which performs database writes::
         ...more middleware here...
     )
 
-``PinningRouterMiddleware`` attaches a cookie to any user agent who has just
-written. The cookie should be set to expire at a time longer than your
-replication lag. By default, its value is a conservative 15 seconds, but it can
-be adjusted like so::
+``PinningRouterMiddleware`` attaches a cryptographically signed cookie to any
+user agent who has just written. The cookie should be set to expire at a time
+longer than your replication lag. By default, its value is a conservative 15
+seconds, but it can be adjusted like so::
 
     MULTIDB_PINNING_SECONDS = 5
 
@@ -101,6 +101,16 @@ setting::
 
     MULTIDB_PINNING_COOKIE = 'multidb_pin_writes'
 
+Security Configuration
+======================
+
+The package uses HMAC-signed cookies to prevent malicious users from forging
+pinning cookies that could overload your primary database. For additional
+security in multi-deployment environments, configure a unique salt per deployment::
+
+    MULTIDB_PINNING_COOKIE_SALT = 'your_unique_deployment_salt_here'
+
+If not configured, the default salt 'multidb_pinning' will be used.
 
 You may also set the 'Secure', 'HttpOnly', and 'SameSite' cookie attributes by
 using the following settings. These settings are based on Django's settings for
@@ -112,6 +122,36 @@ the session and CSRF cookies::
 
 Note: the 'SameSite' attribute is only `available on django 2.1 and higher
 <https://docs.djangoproject.com/en/2.1/releases/2.1/>`_.
+
+Security Improvements in v0.11
+===============================
+
+Version 0.11 includes critical security and performance improvements:
+
+**Security Enhancements:**
+
+- **Signed Cookie Protection**: Cookies are now HMAC-signed to prevent tampering
+  and DoS attacks via forged pinning cookies
+- **Configurable Salt**: Use ``MULTIDB_PINNING_COOKIE_SALT`` for deployment-specific
+  security and to prevent cross-deployment cookie attacks
+- **Robust Error Handling**: Malformed cookie data is handled gracefully without
+  causing application errors
+
+**Performance Optimizations:**
+
+- **Thread-Safe Replica Selection**: Eliminated race conditions in concurrent
+  environments that could cause incorrect replica selection
+- **Efficient Caching**: Replica database list is now cached efficiently,
+  reducing per-request overhead
+- **Improved Concurrency**: Better performance under high-load scenarios with
+  many concurrent database connections
+
+**Migration Notes:**
+
+- Existing deployments continue to work without configuration changes
+- New signed cookies are automatically used for better security
+- Consider configuring ``MULTIDB_PINNING_COOKIE_SALT`` for enhanced security
+  in production environments
 
 ``use_primary_db``
 ==================
@@ -134,17 +174,37 @@ or as a decorator::
         """Touches the primary database."""
 
 
-Running the Tests
+Development Setup
 -----------------
 
-To run the tests, you'll need to install the development requirements::
+This project uses modern Python tooling. To get started::
 
-    pip install -r requirements.txt
+    # Install uv (fast Python package manager)
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # Install dependencies
+    uv sync
+
+    # Run tests
     ./run.sh test
 
+    # Run linting and formatting
+    ./run.sh check
+    ./run.sh fmt
+
 Alternatively, you can run the tests with several versions of Django
-and Python using tox:
+and Python using tox::
 
-    $ pip install tox
-
+    $ uv tool install tox
     $ tox
+
+Available Commands
+==================
+
+The ``run.sh`` script provides convenient commands for development:
+
+- ``./run.sh test`` - Run the full test suite
+- ``./run.sh check`` - Run linting and format checks
+- ``./run.sh fmt`` - Format code with ruff
+- ``./run.sh lint`` - Run linting only
+- ``./run.sh shell`` - Open Django shell

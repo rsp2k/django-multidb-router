@@ -3,7 +3,7 @@
 SECRET_KEY = 'dummy'
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware'
+    'django.middleware.csrf.CsrfViewMiddleware',
 )
 
 # The default database should point to the read/write primary.
@@ -16,10 +16,22 @@ DATABASES = {
         'NAME': 'replica.sqlite',
         'ENGINE': 'django.db.backends.sqlite3',
     },
+    'replica1': {
+        'NAME': 'replica1.sqlite',
+        'ENGINE': 'django.db.backends.sqlite3',
+    },
+    'replica2': {
+        'NAME': 'replica2.sqlite',
+        'ENGINE': 'django.db.backends.sqlite3',
+    },
 }
 
 # Put the aliases for replica databases in this list.
 REPLICA_DATABASES = ['replica']
+
+INSTALLED_APPS = [
+    'multidb',
+]
 
 # If you use PinningReplicaRouter and its associated middleware, you can
 # customize the cookie name and its lifetime like so:

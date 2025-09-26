@@ -1,13 +1,18 @@
 """An encapsulated thread-local variable that indicates whether future DB
 writes should be "stuck" to the master."""
 
-from functools import wraps
 import threading
 import warnings
+from functools import wraps
 
-
-__all__ = ['this_thread_is_pinned', 'pin_this_thread', 'unpin_this_thread',
-           'use_primary_db', 'use_master', 'db_write']
+__all__ = [
+    'this_thread_is_pinned',
+    'pin_this_thread',
+    'unpin_this_thread',
+    'use_primary_db',
+    'use_master',
+    'db_write',
+]
 
 
 _locals = threading.local()
@@ -33,13 +38,15 @@ def unpin_this_thread():
     _locals.pinned = False
 
 
-class UsePrimaryDB(object):
+class UsePrimaryDB:
     """A contextmanager/decorator to use the master database."""
+
     def __call__(self, func):
         @wraps(func)
         def decorator(*args, **kw):
             with self:
                 return func(*args, **kw)
+
         return decorator
 
     def __enter__(self):
@@ -57,8 +64,9 @@ class DeprecatedUseMaster(UsePrimaryDB):
             '[multidb] @use_master has been deprecated, please switch to '
             '@use_primary_db',
             DeprecationWarning,
+            stacklevel=2,
         )
-        return super(DeprecatedUseMaster, self).__enter__()
+        return super().__enter__()
 
 
 use_primary_db = UsePrimaryDB()
@@ -77,4 +85,5 @@ def db_write(fn):
         with use_primary_db:
             response = fn(*args, **kw)
         return mark_as_write(response)
+
     return _wrapped
